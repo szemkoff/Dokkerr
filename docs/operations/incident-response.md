@@ -6,6 +6,7 @@
 This document outlines Dokkerr's incident response procedures, ensuring quick and effective handling of system incidents, outages, and security events.
 
 ## Incident Classification
+<a id="alerting"></a>
 
 ### Severity Levels
 

@@ -38,6 +38,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Getting Started: getting-started.md
   - Features:
     - Overview: features/index.md
     - Authentication: features/authentication.md
@@ -47,6 +48,7 @@ nav:
     - Dock Management: features/dock-management.md
   - Architecture:
     - Overview: architecture/overview.md
+    - Index: architecture/index.md
     - System Design: architecture/system-design.md
     - Components: architecture/components.md
     - Data Flow: architecture/data-flow.md
@@ -61,6 +63,7 @@ nav:
       - API Design: architecture/adrs/004-api-design.md
   - Technical:
     - Overview: technical/overview.md
+    - Index: technical/index.md
     - API Endpoints: technical/api-endpoints.md
     - API Reference: technical/api-reference.md
     - Database Schema: technical/database-schema.md
@@ -76,8 +79,11 @@ nav:
     - Security: technical/security.md
     - Configuration: technical/configuration.md
     - System Design: technical/system-design.md
+    - Data Flow: technical/data-flow.md
     - FAQ: technical/faq.md
     - Troubleshooting: technical/troubleshooting.md
+    - API:
+      - Overview: technical/api/overview.md
   - Development:
     - Overview: development/index.md
     - Setup: development/setup.md
@@ -92,6 +98,8 @@ nav:
     - Deployment: development/deployment.md
     - Deployment Status: development/deployment-status.md
     - Release Process: development/release-process.md
+    - Guidelines: development/guidelines.md
+    - Status: development/status.md
     - Open Source vs Proprietary: development/open-source-vs-proprietary.md
     - Guides:
       - Short ID Implementation: development/guides/short-id-implementation.md
@@ -120,11 +128,13 @@ nav:
     - Security: operations/security.md
   - Security:
     - Overview: security/overview.md
+    - Index: security/index.md
     - Guidelines: security/guidelines.md
     - Authentication: security/authentication.md
     - Data Protection: security/data-protection.md
     - Compliance: security/compliance.md
   - User Guide:
+    - Overview: user-guide.md
     - For Dock Owners: user-guide/dock-owners.md
     - For Renters: user-guide/renters.md
   - API:

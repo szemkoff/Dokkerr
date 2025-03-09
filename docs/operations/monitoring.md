@@ -6,6 +6,7 @@
 Dokkerr implements a comprehensive monitoring and alerting system to ensure system health, performance, and reliability. This document outlines our monitoring infrastructure, alerting rules, and incident response procedures.
 
 ## Infrastructure Monitoring
+<a id="prometheus"></a>
 
 ### System Metrics
 
@@ -31,6 +32,7 @@ class SystemMonitor {
 ```
 
 ### Application Metrics
+<a id="grafana"></a>
 
 ```typescript
 class ApplicationMetrics {
@@ -192,6 +194,7 @@ class AlertHandler {
 ```
 
 ## Logging and Tracing
+<a id="logging"></a>
 
 ### Log Aggregation
 

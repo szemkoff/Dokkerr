@@ -18,7 +18,7 @@ cd dokkerr
 ```
 
 ### 2. Set Up Development Environment
-Follow the [Development Setup Guide](/development/setup) to set up your local environment.
+Follow the [Development Setup Guide](setup.md) to set up your local environment.
 
 ### 3. Create a Branch
 ```bash
@@ -33,7 +33,7 @@ git checkout -b fix/your-fix-name
 
 ### 1. Make Your Changes
 - Write clear, concise code
-- Follow our [coding standards](/development/coding-standards)
+- Follow our [coding standards](coding-standards.md)
 - Add tests for new features
 - Update documentation as needed
 
@@ -172,10 +172,10 @@ We follow [Semantic Versioning](https://semver.org/):
 - Slack: For real-time communication (invite required)
 
 ### Support Resources
-- [Development Setup Guide](/development/setup)
-- [API Documentation](/technical/api-endpoints)
-- [Architecture Overview](/architecture/overview)
-- [Testing Guide](/development/testing)
+- [Development Setup Guide](setup.md)
+- [API Documentation](../technical/api-endpoints.md)
+- [Architecture Overview](../architecture/overview.md)
+- [Testing Guide](testing.md)
 
 ## Recognition
 

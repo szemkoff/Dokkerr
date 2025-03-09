@@ -224,8 +224,8 @@ kill -9 <PID>
 
 ## Additional Resources
 
-- [API Documentation](/technical/api-endpoints)
-- [Database Schema](/technical/database-schema)
-- [Mobile App Architecture](/technical/mobile-app)
-- [Contributing Guidelines](/development/contributing)
-- [Testing Guide](/development/testing) 
+- [API Documentation](../technical/api-endpoints.md)
+- [Database Schema](../technical/database-schema.md)
+- [Mobile App Architecture](../technical/mobile-app.md)
+- [Contributing Guidelines](contributing.md)
+- [Testing Guide](testing.md) 

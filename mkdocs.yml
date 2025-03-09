@@ -38,7 +38,6 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
   - Features:
     - Overview: features/index.md
     - Authentication: features/authentication.md
@@ -87,7 +86,6 @@ nav:
   - Development:
     - Overview: development/index.md
     - Setup: development/setup.md
-    - Getting Started: development/getting-started.md
     - Architecture: development/architecture.md
     - Contributing: development/contributing.md
     - Coding Standards: development/coding-standards.md

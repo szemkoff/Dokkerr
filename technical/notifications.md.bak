@@ -1,0 +1,355 @@
+---
+title: Notification System
+description: Documentation for the Dokkerr notification system
+---
+
+# Notification System
+
+## Overview
+
+Dokkerr's notification system provides real-time updates and alerts to users through multiple channels: email, in-app notifications, and push notifications. The system is designed to be scalable, reliable, and customizable.
+
+## Email Notifications
+
+### Setup
+
+The email service is initialized in `src/services/email.ts`:
+
+```typescript
+import nodemailer from 'nodemailer';
+import { SESClient } from '@aws-sdk/client-ses';
+
+export class EmailService {
+  private static transporter: nodemailer.Transporter;
+  private static sesClient: SESClient;
+
+  static initialize() {
+    this.sesClient = new SESClient({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    });
+
+    this.transporter = nodemailer.createTransport({
+      SES: { ses: this.sesClient, aws: AWS }
+    });
+  }
+}
+```
+
+### Email Templates
+
+Located in `src/templates/email`:
+
+```typescript
+export const emailTemplates = {
+  bookingConfirmation: {
+    subject: 'Booking Confirmed - Dokkerr',
+    template: 'booking-confirmation.ejs',
+    data: {
+      booking: BookingType,
+      user: UserType
+    }
+  },
+  paymentReceipt: {
+    subject: 'Payment Receipt - Dokkerr',
+    template: 'payment-receipt.ejs',
+    data: {
+      payment: PaymentType,
+      booking: BookingType
+    }
+  }
+};
+```
+
+### Sending Emails
+
+```typescript
+async function sendEmail(to: string, templateName: string, data: any) {
+  const template = emailTemplates[templateName];
+  const html = await renderTemplate(template.template, data);
+  
+  return await transporter.sendMail({
+    from: 'Dokkerr <noreply@dokkerr.com>',
+    to,
+    subject: template.subject,
+    html
+  });
+}
+```
+
+## Push Notifications
+
+### Firebase Configuration
+
+```typescript
+import { initializeApp } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
+
+const firebaseConfig = {
+  credential: applicationDefault(),
+  projectId: process.env.FIREBASE_PROJECT_ID
+};
+
+initializeApp(firebaseConfig);
+```
+
+### Sending Push Notifications
+
+```typescript
+async function sendPushNotification(userId: string, notification: NotificationType) {
+  const userDevices = await getUserDevices(userId);
+  
+  const message = {
+    notification: {
+      title: notification.title,
+      body: notification.body
+    },
+    data: {
+      type: notification.type,
+      entityId: notification.entityId
+    },
+    tokens: userDevices.map(device => device.token)
+  };
+  
+  return await getMessaging().sendMulticast(message);
+}
+```
+
+## In-App Notifications
+
+### Database Schema
+
+```sql
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  type VARCHAR(50) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  data JSONB,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
+
+### Notification Types
+
+```typescript
+enum NotificationType {
+  BOOKING_CONFIRMED = 'booking_confirmed',
+  PAYMENT_RECEIVED = 'payment_received',
+  MESSAGE_RECEIVED = 'message_received',
+  REVIEW_RECEIVED = 'review_received',
+  LISTING_UPDATED = 'listing_updated'
+}
+```
+
+### WebSocket Integration
+
+```typescript
+io.on('connection', (socket) => {
+  socket.on('notifications:read', async (notificationId) => {
+    await markNotificationAsRead(notificationId);
+    socket.emit('notifications:updated');
+  });
+  
+  socket.on('notifications:subscribe', async () => {
+    const userId = socket.data.user.id;
+    socket.join(`notifications:${userId}`);
+  });
+});
+```
+
+## Notification Templates
+
+### Template Structure
+
+```typescript
+interface NotificationTemplate {
+  title: string;
+  body: string;
+  data?: Record<string, any>;
+  channels: NotificationChannel[];
+}
+
+const templates: Record<NotificationType, NotificationTemplate> = {
+  booking_confirmed: {
+    title: 'Booking Confirmed',
+    body: 'Your booking for {{listing.title}} has been confirmed',
+    channels: ['email', 'push', 'in-app']
+  }
+};
+```
+
+### Template Rendering
+
+```typescript
+function renderTemplate(template: NotificationTemplate, data: any) {
+  return {
+    title: Mustache.render(template.title, data),
+    body: Mustache.render(template.body, data),
+    data: template.data
+  };
+}
+```
+
+## Notification Queue
+
+### Queue Configuration
+
+```typescript
+import Bull from 'bull';
+
+const notificationQueue = new Bull('notifications', {
+  redis: {
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT),
+    password: process.env.REDIS_PASSWORD
+  }
+});
+```
+
+### Queue Processing
+
+```typescript
+notificationQueue.process(async (job) => {
+  const { userId, type, data } = job.data;
+  const template = templates[type];
+  
+  try {
+    // Send notifications through all configured channels
+    await Promise.all(template.channels.map(channel => 
+      sendNotificationByChannel(channel, userId, template, data)
+    ));
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Notification processing failed:', error);
+    throw error;
+  }
+});
+```
+
+## User Preferences
+
+### Preference Schema
+
+```typescript
+interface NotificationPreferences {
+  email: boolean;
+  push: boolean;
+  inApp: boolean;
+  types: {
+    [key in NotificationType]: {
+      enabled: boolean;
+      channels: NotificationChannel[];
+    }
+  }
+}
+```
+
+### Preference Management
+
+```typescript
+async function updateNotificationPreferences(
+  userId: string,
+  preferences: Partial<NotificationPreferences>
+) {
+  await db.users.update({
+    where: { id: userId },
+    data: {
+      notificationPreferences: {
+        update: preferences
+      }
+    }
+  });
+}
+```
+
+## Monitoring and Analytics
+
+### Metrics Collection
+
+```typescript
+class NotificationMetrics {
+  static async collect() {
+    return {
+      totalSent: await getTotalNotificationsSent(),
+      deliveryRate: await calculateDeliveryRate(),
+      channelBreakdown: await getChannelBreakdown(),
+      failureRates: await getFailureRates()
+    };
+  }
+}
+```
+
+### Error Tracking
+
+```typescript
+async function trackNotificationError(error: Error, context: any) {
+  await db.notificationErrors.create({
+    data: {
+      error: error.message,
+      stack: error.stack,
+      context: JSON.stringify(context),
+      timestamp: new Date()
+    }
+  });
+}
+```
+
+## Testing
+
+### Test Environment
+
+```typescript
+const testConfig = {
+  email: {
+    transport: 'ethereal',
+    preview: true
+  },
+  push: {
+    enabled: false
+  },
+  inApp: {
+    enabled: true
+  }
+};
+```
+
+### Notification Testing
+
+```typescript
+describe('Notification System', () => {
+  it('should send email notifications', async () => {
+    const result = await sendTestNotification({
+      type: NotificationType.BOOKING_CONFIRMED,
+      channel: 'email'
+    });
+    expect(result.status).toBe('sent');
+  });
+});
+```
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Email Delivery Issues**
+   - Check SPF and DKIM records
+   - Verify email templates
+   - Monitor bounce rates
+
+2. **Push Notification Failures**
+   - Validate Firebase credentials
+   - Check device token validity
+   - Monitor delivery rates
+
+3. **Queue Processing Issues**
+   - Check Redis connection
+   - Monitor queue size
+   - Review failed jobs 

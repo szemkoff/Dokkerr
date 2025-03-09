@@ -1,0 +1,412 @@
+---
+title: System Architecture Overview
+description: Documentation for Dokkerr's system architecture and design
+---
+
+# System Architecture Overview
+
+## System Components
+
+### High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        A[Mobile App] --> B[API Gateway]
+        C[Web App] --> B
+        D[Admin Dashboard] --> B
+    end
+
+    subgraph "Application Layer"
+        B --> E[Load Balancer]
+        E --> F[API Servers]
+        F --> G[WebSocket Servers]
+    end
+
+    subgraph "Service Layer"
+        F --> H[Auth Service]
+        F --> I[Payment Service]
+        F --> J[Notification Service]
+        F --> K[Search Service]
+    end
+
+    subgraph "Data Layer"
+        H & I & J & K --> L[PostgreSQL]
+        H & I & J & K --> M[Redis]
+        K --> N[Elasticsearch]
+    end
+
+    subgraph "Storage Layer"
+        F --> O[S3 Storage]
+        F --> P[CDN]
+    end
+```
+
+## Technology Stack
+
+### Frontend Technologies
+
+```typescript
+interface FrontendStack {
+  web: {
+    framework: 'React',
+    stateManagement: 'Redux',
+    styling: 'Tailwind CSS',
+    bundler: 'Vite'
+  };
+  mobile: {
+    framework: 'React Native',
+    stateManagement: 'Redux',
+    navigation: 'React Navigation'
+  };
+  admin: {
+    framework: 'React',
+    uiLibrary: 'Material-UI',
+    charts: 'Chart.js'
+  };
+}
+```
+
+### Backend Technologies
+
+```typescript
+interface BackendStack {
+  api: {
+    runtime: 'Node.js',
+    framework: 'Express',
+    typescript: true
+  };
+  websocket: {
+    library: 'Socket.IO',
+    scaling: 'Redis Adapter'
+  };
+  database: {
+    primary: 'PostgreSQL',
+    cache: 'Redis',
+    search: 'Elasticsearch'
+  };
+  storage: {
+    files: 'AWS S3',
+    cdn: 'CloudFront'
+  };
+}
+```
+
+## Core Services
+
+### Authentication Service
+
+```typescript
+class AuthService {
+  static readonly AUTH_FLOWS = {
+    email: {
+      type: 'password',
+      mfa: true
+    },
+    social: {
+      providers: ['Google', 'Facebook', 'Apple'],
+      mfa: false
+    },
+    apiKey: {
+      type: 'bearer',
+      expiry: '30d'
+    }
+  };
+}
+```
+
+### Payment Service
+
+```typescript
+class PaymentService {
+  static readonly PAYMENT_PROVIDERS = {
+    stripe: {
+      primary: true,
+      features: ['cards', 'wallets', 'subscriptions']
+    },
+    paypal: {
+      primary: false,
+      features: ['express-checkout']
+    }
+  };
+}
+```
+
+### Notification Service
+
+```typescript
+class NotificationService {
+  static readonly CHANNELS = {
+    email: {
+      provider: 'AWS SES',
+      templates: true
+    },
+    push: {
+      provider: 'Firebase',
+      platforms: ['iOS', 'Android']
+    },
+    sms: {
+      provider: 'Twilio',
+      features: ['verification']
+    }
+  };
+}
+```
+
+## Data Architecture
+
+### Database Schema
+
+```typescript
+interface DatabaseSchema {
+  users: {
+    profile: 'User profile information',
+    preferences: 'User settings and preferences',
+    authentication: 'Auth credentials and sessions'
+  };
+  listings: {
+    details: 'Dock listing information',
+    availability: 'Availability calendar',
+    pricing: 'Price and fee structure'
+  };
+  bookings: {
+    reservation: 'Booking details',
+    payment: 'Payment information',
+    status: 'Booking lifecycle status'
+  };
+}
+```
+
+### Caching Strategy
+
+```typescript
+class CacheStrategy {
+  static readonly CACHE_POLICIES = {
+    listings: {
+      ttl: '1h',
+      invalidation: ['update', 'delete']
+    },
+    userProfile: {
+      ttl: '24h',
+      invalidation: ['update']
+    },
+    searchResults: {
+      ttl: '15m',
+      invalidation: ['new-listing']
+    }
+  };
+}
+```
+
+## Scalability
+
+### Horizontal Scaling
+
+```typescript
+interface ScalingConfig {
+  api: {
+    minInstances: 2,
+    maxInstances: 10,
+    metrics: ['cpu', 'memory', 'requests']
+  };
+  websocket: {
+    minInstances: 2,
+    maxInstances: 5,
+    metrics: ['connections', 'memory']
+  };
+  workers: {
+    minInstances: 1,
+    maxInstances: 5,
+    metrics: ['queue-size', 'processing-time']
+  };
+}
+```
+
+### Load Balancing
+
+```typescript
+class LoadBalancer {
+  static readonly CONFIGURATION = {
+    algorithm: 'least_connections',
+    healthCheck: {
+      path: '/health',
+      interval: '30s',
+      timeout: '5s',
+      unhealthyThreshold: 2
+    },
+    ssl: {
+      enabled: true,
+      provider: 'Let\'s Encrypt'
+    }
+  };
+}
+```
+
+## Security Architecture
+
+### Security Layers
+
+```typescript
+interface SecurityArchitecture {
+  network: {
+    firewall: 'AWS Security Groups',
+    ddosProtection: 'AWS Shield',
+    waf: 'AWS WAF'
+  };
+  application: {
+    authentication: 'JWT + MFA',
+    authorization: 'RBAC',
+    encryption: 'AES-256'
+  };
+  data: {
+    atRest: 'AWS KMS',
+    inTransit: 'TLS 1.3',
+    backup: 'Encrypted S3'
+  };
+}
+```
+
+## Deployment Architecture
+
+### Infrastructure as Code
+
+```typescript
+interface InfrastructureConfig {
+  provider: 'AWS',
+  regions: ['us-east-1', 'eu-west-1'],
+  services: {
+    compute: 'ECS',
+    database: 'RDS',
+    cache: 'ElastiCache',
+    storage: 'S3',
+    cdn: 'CloudFront'
+  };
+}
+```
+
+### CI/CD Pipeline
+
+```typescript
+class DeploymentPipeline {
+  static readonly STAGES = {
+    build: {
+      steps: ['lint', 'test', 'build'],
+      artifacts: ['app', 'docs']
+    },
+    test: {
+      environments: ['staging'],
+      types: ['unit', 'integration', 'e2e']
+    },
+    deploy: {
+      strategy: 'blue-green',
+      automation: 'GitHub Actions',
+      monitoring: true
+    }
+  };
+}
+```
+
+## Integration Points
+
+### External Services
+
+```typescript
+interface ExternalIntegrations {
+  maps: {
+    provider: 'Google Maps',
+    services: ['geocoding', 'places', 'directions']
+  };
+  payments: {
+    providers: ['Stripe', 'PayPal'],
+    features: ['payments', 'refunds', 'disputes']
+  };
+  communications: {
+    email: 'AWS SES',
+    sms: 'Twilio',
+    push: 'Firebase'
+  };
+}
+```
+
+### API Integration
+
+```typescript
+class APIGateway {
+  static readonly CONFIGURATION = {
+    version: 'v1',
+    format: 'REST',
+    authentication: 'JWT',
+    rateLimit: {
+      window: '15m',
+      max: 100
+    },
+    documentation: 'OpenAPI 3.0'
+  };
+}
+```
+
+## Monitoring Architecture
+
+### Observability Stack
+
+```typescript
+interface ObservabilityStack {
+  metrics: {
+    collection: 'Prometheus',
+    visualization: 'Grafana',
+    alerting: 'AlertManager'
+  };
+  logging: {
+    aggregation: 'ELK Stack',
+    storage: 'Elasticsearch',
+    retention: '30d'
+  };
+  tracing: {
+    system: 'Jaeger',
+    sampling: 0.1,
+    retention: '7d'
+  };
+}
+```
+
+## Disaster Recovery
+
+### Backup Strategy
+
+```typescript
+interface BackupStrategy {
+  database: {
+    full: 'daily',
+    incremental: '15m',
+    retention: '30d'
+  };
+  files: {
+    frequency: 'real-time',
+    replication: 'cross-region',
+    versioning: true
+  };
+  configuration: {
+    backup: 'daily',
+    retention: '90d'
+  };
+}
+```
+
+## Future Architecture
+
+### Planned Improvements
+
+1. **Service Mesh Integration**
+   - Service discovery
+   - Traffic management
+   - Security policies
+
+2. **Event-Driven Architecture**
+   - Message queues
+   - Event sourcing
+   - CQRS pattern
+
+3. **Machine Learning Integration**
+   - Recommendation system
+   - Fraud detection
+   - Dynamic pricing 

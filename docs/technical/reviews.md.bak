@@ -1,0 +1,356 @@
+---
+title: Review System
+description: Documentation for the Dokkerr review and rating system
+---
+
+# Review System
+
+## Overview
+
+Dokkerr's review system enables users to provide feedback and ratings for listings and other users. The system includes features for review submission, moderation, rating calculations, and reporting inappropriate content.
+
+## Database Schema
+
+### Reviews Table
+
+```sql
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  author_id UUID NOT NULL REFERENCES users(id),
+  target_id UUID NOT NULL,
+  target_type VARCHAR(20) NOT NULL CHECK (target_type IN ('listing', 'user')),
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(author_id, target_id, target_type)
+);
+
+CREATE INDEX reviews_target_idx ON reviews(target_id, target_type);
+CREATE INDEX reviews_author_idx ON reviews(author_id);
+```
+
+### Review Responses
+
+```sql
+CREATE TABLE review_responses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  review_id UUID NOT NULL REFERENCES reviews(id),
+  author_id UUID NOT NULL REFERENCES users(id),
+  comment TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+);
+```
+
+## Review Management
+
+### Submission
+
+```typescript
+interface ReviewSubmission {
+  targetId: string;
+  targetType: 'listing' | 'user';
+  rating: number;
+  comment: string;
+}
+
+async function submitReview(authorId: string, review: ReviewSubmission) {
+  // Verify eligibility
+  await verifyReviewEligibility(authorId, review.targetId);
+  
+  // Create review
+  const newReview = await db.reviews.create({
+    data: {
+      authorId,
+      targetId: review.targetId,
+      targetType: review.targetType,
+      rating: review.rating,
+      comment: review.comment,
+      status: 'pending'
+    }
+  });
+  
+  // Trigger moderation
+  await moderateReview(newReview.id);
+  
+  // Update target rating
+  await updateTargetRating(review.targetId, review.targetType);
+  
+  return newReview;
+}
+```
+
+### Moderation
+
+```typescript
+class ReviewModerator {
+  static async moderateReview(reviewId: string) {
+    const review = await db.reviews.findUnique({
+      where: { id: reviewId }
+    });
+    
+    const moderationResult = await this.analyzeContent(review.comment);
+    
+    if (moderationResult.isApproved) {
+      await this.approveReview(reviewId);
+    } else {
+      await this.rejectReview(reviewId, moderationResult.reason);
+    }
+  }
+  
+  static async analyzeContent(comment: string) {
+    // Check for inappropriate content
+    const toxicity = await this.checkToxicity(comment);
+    const spam = await this.checkSpam(comment);
+    
+    return {
+      isApproved: toxicity.score < 0.7 && !spam.isSpam,
+      reason: toxicity.score >= 0.7 ? 'toxic_content' : 
+              spam.isSpam ? 'spam_detected' : null
+    };
+  }
+}
+```
+
+## Rating Calculation
+
+### Aggregate Ratings
+
+```typescript
+async function calculateAggregateRating(targetId: string, targetType: string) {
+  const ratings = await db.reviews.findMany({
+    where: {
+      targetId,
+      targetType,
+      status: 'approved'
+    },
+    select: {
+      rating: true,
+      createdAt: true
+    }
+  });
+  
+  const weightedRatings = ratings.map(r => ({
+    rating: r.rating,
+    weight: calculateWeight(r.createdAt)
+  }));
+  
+  return {
+    average: calculateWeightedAverage(weightedRatings),
+    total: ratings.length,
+    distribution: calculateDistribution(ratings)
+  };
+}
+
+function calculateWeight(createdAt: Date) {
+  const age = Date.now() - createdAt.getTime();
+  const ageInDays = age / (1000 * 60 * 60 * 24);
+  return Math.exp(-0.1 * ageInDays); // Exponential decay
+}
+```
+
+### Rating Updates
+
+```typescript
+async function updateTargetRating(targetId: string, targetType: string) {
+  const rating = await calculateAggregateRating(targetId, targetType);
+  
+  if (targetType === 'listing') {
+    await db.listings.update({
+      where: { id: targetId },
+      data: {
+        rating: rating.average,
+        totalReviews: rating.total,
+        ratingDistribution: rating.distribution
+      }
+    });
+  } else {
+    await db.users.update({
+      where: { id: targetId },
+      data: {
+        rating: rating.average,
+        totalReviews: rating.total
+      }
+    });
+  }
+}
+```
+
+## Review API
+
+### Endpoints
+
+```typescript
+// Submit a review
+router.post('/api/reviews', auth, async (req, res) => {
+  const review = await submitReview(req.user.id, req.body);
+  res.json({ status: 'success', data: review });
+});
+
+// Get reviews for a target
+router.get('/api/reviews/:targetId', async (req, res) => {
+  const reviews = await getTargetReviews(
+    req.params.targetId,
+    req.query.targetType,
+    req.query.page
+  );
+  res.json({ status: 'success', data: reviews });
+});
+
+// Update a review
+router.put('/api/reviews/:id', auth, async (req, res) => {
+  const review = await updateReview(req.params.id, req.body);
+  res.json({ status: 'success', data: review });
+});
+```
+
+## Review Display
+
+### Review Component
+
+```typescript
+interface ReviewProps {
+  review: {
+    id: string;
+    author: {
+      id: string;
+      name: string;
+      avatar: string;
+    };
+    rating: number;
+    comment: string;
+    createdAt: Date;
+    responses: ReviewResponse[];
+  };
+  onResponse: (comment: string) => Promise<void>;
+}
+
+function ReviewComponent({ review, onResponse }: ReviewProps) {
+  return (
+    <div className="review">
+      <div className="review-header">
+        <Avatar src={review.author.avatar} />
+        <div className="review-meta">
+          <h4>{review.author.name}</h4>
+          <StarRating value={review.rating} />
+          <time>{formatDate(review.createdAt)}</time>
+        </div>
+      </div>
+      <div className="review-content">
+        <p>{review.comment}</p>
+      </div>
+      <div className="review-responses">
+        {review.responses.map(response => (
+          <ResponseComponent key={response.id} response={response} />
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+## Review Analytics
+
+### Metrics Collection
+
+```typescript
+class ReviewAnalytics {
+  static async getMetrics() {
+    return {
+      totalReviews: await this.getTotalReviews(),
+      averageRating: await this.getAverageRating(),
+      moderationStats: await this.getModerationStats(),
+      responseRate: await this.getResponseRate()
+    };
+  }
+  
+  static async getModerationStats() {
+    const stats = await db.reviews.groupBy({
+      by: ['status'],
+      _count: true
+    });
+    
+    return {
+      approved: stats.find(s => s.status === 'approved')?._count || 0,
+      rejected: stats.find(s => s.status === 'rejected')?._count || 0,
+      pending: stats.find(s => s.status === 'pending')?._count || 0
+    };
+  }
+}
+```
+
+## Review Notifications
+
+### Notification Triggers
+
+```typescript
+async function notifyReviewSubmission(review) {
+  // Notify target
+  await notificationService.send({
+    userId: review.targetId,
+    type: 'review_received',
+    data: {
+      reviewId: review.id,
+      rating: review.rating
+    }
+  });
+  
+  // Notify admins if flagged
+  if (review.status === 'flagged') {
+    await notificationService.sendToAdmins({
+      type: 'review_flagged',
+      data: {
+        reviewId: review.id,
+        reason: review.flagReason
+      }
+    });
+  }
+}
+```
+
+## Testing
+
+### Review Tests
+
+```typescript
+describe('Review System', () => {
+  it('should submit a review', async () => {
+    const review = await submitReview(userId, {
+      targetId: listingId,
+      targetType: 'listing',
+      rating: 5,
+      comment: 'Great experience!'
+    });
+    
+    expect(review.status).toBe('pending');
+    expect(review.authorId).toBe(userId);
+  });
+  
+  it('should calculate correct rating', async () => {
+    const rating = await calculateAggregateRating(listingId, 'listing');
+    expect(rating.average).toBeGreaterThan(0);
+    expect(rating.average).toBeLessThanOrEqual(5);
+  });
+});
+```
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Review Submission Issues**
+   - Verify user eligibility
+   - Check rate limiting
+   - Validate input data
+
+2. **Rating Calculation Issues**
+   - Check for missing reviews
+   - Verify weight calculation
+   - Monitor update triggers
+
+3. **Moderation Problems**
+   - Review moderation logs
+   - Check content filters
+   - Verify notification delivery 

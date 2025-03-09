@@ -1,0 +1,454 @@
+
+# Performance Tuning
+
+## Overview
+
+Dokkerr's performance tuning guidelines ensure optimal system performance, response times, and resource utilization. This document outlines our performance optimization strategies and best practices.
+
+## Database Optimization
+
+### Query Optimization
+
+```typescript
+class QueryOptimizer {
+  static readonly QUERY_GUIDELINES = {
+    // Use specific columns instead of SELECT *
+    selectColumns: {
+      bad: 'SELECT * FROM listings',
+      good: 'SELECT id, title, price FROM listings'
+    },
+    
+    // Use appropriate indexes
+    indexUsage: {
+      createIndex: 'CREATE INDEX idx_listings_location ON listings USING GIST (location)',
+      queryWithIndex: 'SELECT * FROM listings WHERE location && ST_MakeEnvelope($1, $2, $3, $4)'
+    },
+    
+    // Optimize JOIN operations
+    joinOptimization: {
+      bad: 'SELECT * FROM listings l LEFT JOIN users u ON l.owner_id = u.id',
+      good: 'SELECT l.id, l.title, u.name FROM listings l INNER JOIN users u ON l.owner_id = u.id'
+    }
+  };
+  
+  static async analyzeQueryPerformance(query: string) {
+    return {
+      executionTime: await this.measureExecutionTime(query),
+      planAnalysis: await this.explainAnalyze(query),
+      indexUsage: await this.checkIndexUsage(query)
+    };
+  }
+}
+```
+
+### Connection Pooling
+
+```typescript
+class DatabasePool {
+  static readonly POOL_CONFIG = {
+    min: 2,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+    statement_timeout: 5000
+  };
+  
+  static configurePool() {
+    return {
+      ...this.POOL_CONFIG,
+      afterCreate: async (conn: any, done: Function) => {
+        // Set session parameters
+        await conn.query('SET statement_timeout = $1', [this.POOL_CONFIG.statement_timeout]);
+        done(null, conn);
+      }
+    };
+  }
+}
+```
+
+## Caching Strategy
+
+### Multi-Level Caching
+
+```typescript
+class CacheManager {
+  static readonly CACHE_LEVELS = {
+    memory: {
+      provider: 'Node.js Memory Cache',
+      ttl: '1m',
+      maxSize: '100MB'
+    },
+    redis: {
+      provider: 'Redis',
+      ttl: '1h',
+      maxSize: '1GB'
+    },
+    cdn: {
+      provider: 'CloudFront',
+      ttl: '24h',
+      maxSize: 'unlimited'
+    }
+  };
+  
+  static async getCachedData(key: string) {
+    // Try memory cache first
+    const memoryResult = await this.getFromMemory(key);
+    if (memoryResult) return memoryResult;
+    
+    // Try Redis next
+    const redisResult = await this.getFromRedis(key);
+    if (redisResult) {
+      await this.setInMemory(key, redisResult);
+      return redisResult;
+    }
+    
+    // Fallback to database
+    const dbResult = await this.getFromDatabase(key);
+    await this.setInCache(key, dbResult);
+    return dbResult;
+  }
+}
+```
+
+### Cache Invalidation
+
+```typescript
+class CacheInvalidator {
+  static readonly INVALIDATION_RULES = {
+    listings: {
+      events: ['create', 'update', 'delete'],
+      patterns: ['listing:*', 'search:*']
+    },
+    users: {
+      events: ['update', 'delete'],
+      patterns: ['user:*', 'profile:*']
+    },
+    bookings: {
+      events: ['create', 'update', 'cancel'],
+      patterns: ['booking:*', 'listing:availability:*']
+    }
+  };
+  
+  static async invalidateCache(event: CacheEvent) {
+    const patterns = this.INVALIDATION_RULES[event.type].patterns;
+    await Promise.all([
+      this.invalidateMemoryCache(patterns),
+      this.invalidateRedisCache(patterns),
+      this.invalidateCDN(patterns)
+    ]);
+  }
+}
+```
+
+## API Optimization
+
+### Response Optimization
+
+```typescript
+class ResponseOptimizer {
+  static readonly OPTIMIZATION_RULES = {
+    pagination: {
+      defaultLimit: 20,
+      maxLimit: 100,
+      useKeyset: true
+    },
+    fields: {
+      selection: true,
+      maxDepth: 3
+    },
+    compression: {
+      enabled: true,
+      threshold: '1kb'
+    }
+  };
+  
+  static optimizeResponse(data: any, options: ResponseOptions) {
+    return {
+      // Select requested fields only
+      data: this.selectFields(data, options.fields),
+      
+      // Add pagination metadata
+      meta: this.getPaginationMeta(data, options),
+      
+      // Compress if needed
+      ...(this.shouldCompress(data) && {
+        compressed: true,
+        encoding: 'gzip'
+      })
+    };
+  }
+}
+```
+
+### Rate Limiting
+
+```typescript
+class RateLimiter {
+  static readonly RATE_LIMITS = {
+    public: {
+      window: '15m',
+      max: 100
+    },
+    authenticated: {
+      window: '15m',
+      max: 1000
+    },
+    search: {
+      window: '1m',
+      max: 30
+    },
+    booking: {
+      window: '1h',
+      max: 10
+    }
+  };
+  
+  static async checkRateLimit(req: Request) {
+    const limit = this.getLimit(req);
+    const key = this.generateKey(req);
+    
+    const current = await this.getCurrentUsage(key);
+    if (current >= limit.max) {
+      throw new RateLimitError('Rate limit exceeded');
+    }
+    
+    await this.incrementUsage(key);
+  }
+}
+```
+
+## Frontend Optimization
+
+### Bundle Optimization
+
+```typescript
+class BundleOptimizer {
+  static readonly WEBPACK_CONFIG = {
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+        maxSize: 244000,
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all'
+          }
+        }
+      },
+      runtimeChunk: 'single'
+    },
+    performance: {
+      hints: 'warning',
+      maxEntrypointSize: 512000,
+      maxAssetSize: 512000
+    }
+  };
+  
+  static analyzeBundle() {
+    return {
+      size: this.measureBundleSize(),
+      splits: this.analyzeSplitPoints(),
+      coverage: this.analyzeCodeCoverage()
+    };
+  }
+}
+```
+
+### Image Optimization
+
+```typescript
+class ImageOptimizer {
+  static readonly IMAGE_RULES = {
+    formats: ['webp', 'avif', 'jpeg'],
+    sizes: {
+      thumbnail: { width: 150, height: 150 },
+      preview: { width: 300, height: 300 },
+      full: { width: 1200, height: 800 }
+    },
+    compression: {
+      jpeg: { quality: 80 },
+      webp: { quality: 75 },
+      avif: { quality: 70 }
+    }
+  };
+  
+  static async optimizeImage(file: ImageFile) {
+    const optimized = await Promise.all(
+      this.IMAGE_RULES.formats.map(format =>
+        this.convertAndOptimize(file, format)
+      )
+    );
+    
+    return {
+      original: file,
+      variants: optimized,
+      sizes: this.generateSrcSet(optimized)
+    };
+  }
+}
+```
+
+## Resource Management
+
+### Memory Management
+
+```typescript
+class MemoryManager {
+  static readonly MEMORY_LIMITS = {
+    heap: {
+      max: '1.5GB',
+      warning: '1.2GB'
+    },
+    rss: {
+      max: '2GB',
+      warning: '1.7GB'
+    },
+    gc: {
+      threshold: '75%',
+      type: 'adaptive'
+    }
+  };
+  
+  static monitorMemory() {
+    const usage = process.memoryUsage();
+    
+    if (usage.heapUsed > this.parseSize(this.MEMORY_LIMITS.heap.warning)) {
+      this.triggerGC();
+    }
+    
+    return {
+      heap: this.formatMemoryUsage(usage.heapUsed),
+      rss: this.formatMemoryUsage(usage.rss),
+      external: this.formatMemoryUsage(usage.external)
+    };
+  }
+}
+```
+
+### CPU Optimization
+
+```typescript
+class CPUOptimizer {
+  static readonly CPU_SETTINGS = {
+    workers: {
+      min: 2,
+      max: 8,
+      autoScale: true
+    },
+    tasks: {
+      priority: {
+        high: ['payment', 'booking'],
+        medium: ['search', 'update'],
+        low: ['analytics', 'cleanup']
+      }
+    }
+  };
+  
+  static async optimizeWorkload() {
+    const metrics = await this.getCPUMetrics();
+    
+    if (metrics.usage > 80) {
+      await this.scaleWorkers(this.CPU_SETTINGS.workers.max);
+    }
+    
+    return this.distributeLoad(metrics);
+  }
+}
+```
+
+## Monitoring and Profiling
+
+### Performance Metrics
+
+```typescript
+class PerformanceMonitor {
+  static readonly METRICS = {
+    response: {
+      p50: 100,  // ms
+      p95: 300,  // ms
+      p99: 500   // ms
+    },
+    database: {
+      queryTime: 50,    // ms
+      connections: 80,  // %
+      deadlocks: 0     // count
+    },
+    cache: {
+      hitRate: 85,     // %
+      missRate: 15,    // %
+      evictions: 100   // count/hour
+    }
+  };
+  
+  static async collectMetrics() {
+    return {
+      api: await this.measureAPIMetrics(),
+      database: await this.measureDBMetrics(),
+      cache: await this.measureCacheMetrics(),
+      system: await this.measureSystemMetrics()
+    };
+  }
+}
+```
+
+### Performance Alerts
+
+```typescript
+class PerformanceAlerts {
+  static readonly ALERT_THRESHOLDS = {
+    responseTime: {
+      warning: 500,   // ms
+      critical: 1000  // ms
+    },
+    errorRate: {
+      warning: 1,    // %
+      critical: 5    // %
+    },
+    cpuUsage: {
+      warning: 70,   // %
+      critical: 90   // %
+    },
+    memoryUsage: {
+      warning: 80,   // %
+      critical: 90   // %
+    }
+  };
+  
+  static async checkThresholds() {
+    const metrics = await PerformanceMonitor.collectMetrics();
+    
+    return Object.entries(this.ALERT_THRESHOLDS).map(([metric, thresholds]) => ({
+      metric,
+      value: metrics[metric],
+      status: this.evaluateThreshold(metrics[metric], thresholds)
+    }));
+  }
+}
+```
+
+## Best Practices
+
+1. **Database Optimization**
+   - Use appropriate indexes
+   - Optimize query patterns
+   - Implement connection pooling
+   - Regular maintenance
+
+2. **Caching Strategy**
+   - Implement multi-level caching
+   - Use appropriate TTLs
+   - Smart invalidation
+   - Monitor hit rates
+
+3. **API Performance**
+   - Implement pagination
+   - Use compression
+   - Rate limiting
+   - Response optimization
+
+4. **Resource Management**
+   - Monitor memory usage
+   - Optimize CPU utilization
+   - Scale resources appropriately
+   - Regular cleanup 

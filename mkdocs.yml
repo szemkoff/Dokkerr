@@ -1,0 +1,181 @@
+site_name: Dokkerr Documentation
+site_description: Documentation for the Dokkerr boat and yacht slip rental application
+site_url: https://szemkoff.github.io/DockRentApp/
+repo_name: szemkoff/DockRentApp
+repo_url: https://github.com/szemkoff/DockRentApp
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+      primary: teal
+      accent: purple
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+      primary: teal
+      accent: lime
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Features:
+    - Overview: features/index.md
+    - Authentication: features/authentication.md
+    - Booking: features/booking.md
+    - Payment: features/payment.md
+    - User Management: features/user-management.md
+    - Dock Management: features/dock-management.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - System Design: architecture/system-design.md
+    - Components: architecture/components.md
+    - Data Flow: architecture/data-flow.md
+    - Integration: architecture/integration.md
+    - Security: architecture/security.md
+    - Design Patterns: architecture/design-patterns.md
+    - Scalability: architecture/scalability.md
+    - Architecture Decision Records:
+      - Service Decomposition: architecture/adrs/001-service-decomposition.md
+      - Authentication: architecture/adrs/002-authentication.md
+      - Database: architecture/adrs/003-database.md
+      - API Design: architecture/adrs/004-api-design.md
+  - Technical:
+    - Overview: technical/overview.md
+    - API Endpoints: technical/api-endpoints.md
+    - API Reference: technical/api-reference.md
+    - Database Schema: technical/database-schema.md
+    - Database: technical/database.md
+    - Mobile App: technical/mobile-app.md
+    - Error Handling: technical/error-handling.md
+    - Payment Processing: technical/payment-processing.md
+    - Notifications: technical/notifications.md
+    - Search: technical/search.md
+    - WebSocket: technical/websocket.md
+    - Short ID System: technical/short-id-system.md
+    - Reviews: technical/reviews.md
+    - Security: technical/security.md
+    - Configuration: technical/configuration.md
+    - System Design: technical/system-design.md
+    - FAQ: technical/faq.md
+    - Troubleshooting: technical/troubleshooting.md
+  - Development:
+    - Overview: development/index.md
+    - Setup: development/setup.md
+    - Getting Started: development/getting-started.md
+    - Architecture: development/architecture.md
+    - Contributing: development/contributing.md
+    - Coding Standards: development/coding-standards.md
+    - Testing: development/testing.md
+    - Code Style: development/code-style.md
+    - Git Workflow: development/git-workflow.md
+    - CI/CD: development/ci-cd.md
+    - Deployment: development/deployment.md
+    - Deployment Status: development/deployment-status.md
+    - Release Process: development/release-process.md
+    - Open Source vs Proprietary: development/open-source-vs-proprietary.md
+    - Guides:
+      - Short ID Implementation: development/guides/short-id-implementation.md
+    - Maintenance:
+      - Overview: development/maintenance/overview.md
+      - Database: development/maintenance/database.md
+      - Monitoring: development/maintenance/monitoring.md
+      - Backup & Recovery: development/maintenance/backup-recovery.md
+      - Performance: development/maintenance/performance.md
+      - Documentation Backups: development/maintenance/documentation-backups.md
+      - Documentation Backup API: development/maintenance/documentation-backups-api.md
+  - Deployment:
+    - Docker: deployment/docker.md
+    - Kubernetes: deployment/kubernetes.md
+    - Cloud Options: deployment/cloud-options.md
+  - Operations:
+    - Overview: operations/index.md
+    - Deployment: operations/deployment.md
+    - Monitoring: operations/monitoring.md
+    - Backup & Recovery: operations/backup-recovery.md
+    - Maintenance: operations/maintenance.md
+    - Scaling: operations/scaling.md
+    - Performance: operations/performance.md
+    - Incident Response: operations/incident-response.md
+    - Compliance: operations/compliance.md
+    - Security: operations/security.md
+  - Security:
+    - Overview: security/overview.md
+    - Guidelines: security/guidelines.md
+    - Authentication: security/authentication.md
+    - Data Protection: security/data-protection.md
+    - Compliance: security/compliance.md
+  - User Guide:
+    - For Dock Owners: user-guide/dock-owners.md
+    - For Renters: user-guide/renters.md
+  - API:
+    - Overview: api/overview.md
+    - Endpoints: api/endpoints.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.mark
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      type: datetime
+      timezone: UTC
+      enable_git_follow: false
+  - minify:
+      minify_html: true
+
+# Add this line to suppress warnings
+strict: false
+
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/szemkoff/DockRentApp
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/dokkerr
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/dokkerr
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js
+  - assets/js/mermaid-init.js
+
+copyright: |
+  &copy; 2025 Dokkerr 

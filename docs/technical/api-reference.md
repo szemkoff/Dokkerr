@@ -1,0 +1,388 @@
+
+# Dokkerr API Reference
+
+## Introduction
+
+The Dokkerr API provides programmatic access to the Dokkerr platform. This document outlines all available endpoints, request formats, and response structures.
+
+## Authentication
+
+Most API endpoints require authentication. Include a valid JWT token in the Authorization header:
+
+```
+Authorization: Bearer your_jwt_token
+```
+
+## ID Formats
+
+All resource endpoints accept both full UUIDs and shortened IDs:
+
+- **Full UUID format**: `123e4567-e89b-12d3-a456-426614174000` (36 characters)
+- **Short ID format**: `123e4567` (8 characters)
+
+Example:
+```
+GET /api/users/123e4567      // Using short ID
+GET /api/users/123e4567-e89b-12d3-a456-426614174000  // Using UUID
+```
+
+Both requests will return the same resource if the identifiers match.
+
+## Response Format
+
+All API responses follow a consistent format:
+
+```json
+{
+  "status": "success",
+  "data": {
+    // Resource data
+  }
+}
+```
+
+Or in case of an error:
+
+```json
+{
+  "status": "error",
+  "message": "Error description"
+}
+```
+
+## User Endpoints
+
+### Get User
+
+Retrieve user information.
+
+**Request:**
+```
+GET /api/users/:id
+```
+
+**URL Parameters:**
+- `id`: User ID (UUID or short ID)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "shortId": "123e4567",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "userType": "boater",
+    "role": "user",
+    "createdAt": "2023-01-15T12:00:00Z"
+  }
+}
+```
+
+## Listing Endpoints
+
+### Get Listing
+
+Retrieve listing information.
+
+**Request:**
+```
+GET /api/listings/:id
+```
+
+**URL Parameters:**
+- `id`: Listing ID (UUID or short ID)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "234f6789-f90a-34e5-b678-537725285000",
+    "shortId": "234f6789",
+    "title": "Premium Dock Slip in Miami",
+    "description": "Spacious dock slip with amenities",
+    "location": "Miami, FL",
+    "pricePerDay": 75.00,
+    "ownerId": "345g7890-g01b-45f6-c789-648836396001",
+    "ownerName": "Jane Smith",
+    "imageUrl": "https://example.com/images/dock1.jpg",
+    "length": 40,
+    "width": 15,
+    "amenities": {
+      "power": true,
+      "water": true,
+      "wifi": true
+    },
+    "createdAt": "2023-02-20T14:30:00Z"
+  }
+}
+```
+
+## Booking Endpoints
+
+### Get Booking
+
+Retrieve booking information.
+
+**Request:**
+```
+GET /api/bookings/:id
+```
+
+**URL Parameters:**
+- `id`: Booking ID (UUID or short ID)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "456h8901-h12c-56g7-d890-759947407002",
+    "shortId": "456h8901",
+    "listingId": "234f6789-f90a-34e5-b678-537725285000",
+    "listingTitle": "Premium Dock Slip in Miami",
+    "boaterId": "123e4567-e89b-12d3-a456-426614174000",
+    "boaterName": "John Doe",
+    "startDate": "2023-07-01T00:00:00Z",
+    "endDate": "2023-07-07T00:00:00Z",
+    "totalPrice": 525.00,
+    "status": "confirmed",
+    "createdAt": "2023-06-15T10:45:00Z"
+  }
+}
+```
+
+## Error Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - The request was malformed |
+| 401 | Unauthorized - Authentication required |
+| 403 | Forbidden - You don't have permission |
+| 404 | Not Found - Resource doesn't exist |
+| 500 | Server Error - Something went wrong on our end |
+
+## Rate Limiting
+
+API requests are limited to 100 requests per IP address per hour. Exceeding this limit will result in a 429 (Too Many Requests) response.
+
+## Versioning
+
+The current API version is v1. Include the version in the URL path:
+
+```
+/api/v1/users/123e4567
+```
+
+## WebSocket Events
+
+Real-time communication is handled through WebSocket connections. Connect to the WebSocket server at:
+
+```
+ws://localhost:5174/ws
+```
+
+### Available Events
+
+| Event | Description | Payload |
+|-------|-------------|---------|
+| `message.new` | New message received | `{ messageId, senderId, content, timestamp }` |
+| `booking.status` | Booking status update | `{ bookingId, status, timestamp }` |
+| `payment.status` | Payment status update | `{ paymentId, status, amount }` |
+| `notification` | System notification | `{ type, message, timestamp }` |
+
+### Example WebSocket Usage
+
+```javascript
+const socket = new WebSocket('ws://localhost:5174/ws');
+
+socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+
+// Send a message
+socket.send(JSON.stringify({
+  type: 'message',
+  content: 'Hello',
+  recipientId: '123e4567'
+}));
+```
+
+## Payment Endpoints
+
+### Create Payment Intent
+
+Create a new payment intent for a booking.
+
+**Request:**
+```
+POST /api/payments/intent
+```
+
+**Body:**
+```json
+{
+  "bookingId": "456h8901",
+  "amount": 525.00,
+  "currency": "usd"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "clientSecret": "pi_..._secret_...",
+    "amount": 525.00,
+    "currency": "usd"
+  }
+}
+```
+
+### Confirm Payment
+
+Confirm a completed payment.
+
+**Request:**
+```
+POST /api/payments/confirm
+```
+
+**Body:**
+```json
+{
+  "paymentIntentId": "pi_...",
+  "bookingId": "456h8901"
+}
+```
+
+## Notification Endpoints
+
+### Get Notifications
+
+Retrieve user notifications.
+
+**Request:**
+```
+GET /api/notifications
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "notifications": [
+      {
+        "id": "567i9012",
+        "type": "booking_confirmed",
+        "message": "Your booking has been confirmed",
+        "read": false,
+        "createdAt": "2024-03-05T14:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Mark Notification as Read
+
+Mark a notification as read.
+
+**Request:**
+```
+PUT /api/notifications/:id/read
+```
+
+## Review Endpoints
+
+### Create Review
+
+Create a new review for a listing or user.
+
+**Request:**
+```
+POST /api/reviews
+```
+
+**Body:**
+```json
+{
+  "targetId": "234f6789",
+  "targetType": "listing",
+  "rating": 5,
+  "comment": "Great experience!"
+}
+```
+
+### Get Reviews
+
+Get reviews for a listing or user.
+
+**Request:**
+```
+GET /api/reviews?targetId=234f6789&targetType=listing
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "reviews": [
+      {
+        "id": "678j0123",
+        "rating": 5,
+        "comment": "Great experience!",
+        "authorId": "123e4567",
+        "authorName": "John Doe",
+        "createdAt": "2024-03-05T15:00:00Z"
+      }
+    ],
+    "averageRating": 4.8,
+    "totalReviews": 25
+  }
+}
+```
+
+## Search Endpoints
+
+### Location-Based Search
+
+Search for listings near a location.
+
+**Request:**
+```
+GET /api/listings/search?lat=25.7617&lng=-80.1918&radius=10
+```
+
+**Parameters:**
+- `lat`: Latitude
+- `lng`: Longitude
+- `radius`: Search radius in miles (optional, default: 10)
+- `amenities`: Comma-separated list of required amenities (optional)
+- `dates`: Date range for availability (optional)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "listings": [
+      {
+        "id": "234f6789",
+        "title": "Premium Dock Slip in Miami",
+        "location": "Miami, FL",
+        "distance": 2.5,
+        "pricePerDay": 75.00,
+        "rating": 4.8
+      }
+    ],
+    "total": 15
+  }
+}
+``` 

@@ -1,0 +1,231 @@
+---
+title: Short ID Implementation Guide
+description: Technical guide for implementing the Short ID system in Dokkerr
+---
+
+# Developer Guide: Short ID Implementation
+
+This guide provides technical details for developers working with the Dokkerr short ID system. It explains how to implement short ID support in new features and ensure compatibility throughout the application.
+
+## Adding Short ID Support to New Models
+
+When creating a new database model that requires short IDs, follow these steps:
+
+### 1. Database Migration
+
+Create a migration that includes the short_id column:
+
+```javascript
+exports.up = function(knex) {
+  return knex.schema.createTable('your_table_name', table => {
+    table.uuid('id').primary();
+    table.string('short_id', 8).unique().index();
+    // Other fields...
+  });
+};
+```
+
+### 2. Model Implementation
+
+Use the ID utilities in your model class:
+
+```javascript
+const { generateIds, isShortId } = require('../utils/idUtils');
+
+class YourModel {
+  static async create(data) {
+    const { id, shortId } = generateIds();
+    
+    // Create record with both IDs
+    const record = {
+      id,
+      short_id: shortId,
+      // Other fields...
+    };
+    
+    // Insert into database...
+    return record;
+  }
+  
+  static async findById(id) {
+    let query;
+    
+    if (isShortId(id)) {
+      query = 'SELECT * FROM your_table_name WHERE short_id = $1';
+    } else {
+      query = 'SELECT * FROM your_table_name WHERE id = $1';
+    }
+    
+    // Execute query...
+  }
+}
+```
+
+### 3. API Response Format
+
+Always include both IDs in API responses:
+
+```javascript
+formatResponse(record) {
+  return {
+    id: record.id,
+    shortId: record.short_id,
+    // Other fields...
+  };
+}
+```
+
+## Working with Short IDs in Route Handlers
+
+When implementing route handlers, follow these patterns:
+
+### 1. Parameter Extraction
+
+```javascript
+router.get('/:id', async (req, res) => {
+  const id = req.params.id;
+  // id could be either a short ID or full UUID
+});
+```
+
+### 2. Query Construction
+
+Use conditional logic based on ID format:
+
+```javascript
+let query;
+if (isShortId(id)) {
+  query = 'SELECT * FROM your_table WHERE short_id = $1';
+} else {
+  query = 'SELECT * FROM your_table WHERE id = $1';
+}
+```
+
+### 3. Response Formatting
+
+Always include both ID formats in responses:
+
+```javascript
+res.json({
+  status: 'success',
+  data: {
+    id: record.id,
+    shortId: record.short_id,
+    // Other fields...
+  }
+});
+```
+
+## URL Generation
+
+When generating URLs in templates or frontend code, prefer short IDs:
+
+```javascript
+// In templates
+<a href="/listings/<%= listing.shortId %>">View Listing</a>
+
+// In API responses that include URLs
+{
+  "data": {
+    "detailUrl": `/api/listings/${record.short_id}`
+  }
+}
+```
+
+## Frontend Considerations
+
+### 1. Display
+
+When displaying IDs to users, always use short IDs:
+
+```html
+<span class="id-display">
+  <%= record.shortId %>
+</span>
+```
+
+### 2. User Input
+
+When accepting user input for IDs, support both formats:
+
+```javascript
+// Form processing
+const id = req.body.id;
+// Lookup will work with either format thanks to the model methods
+const record = await YourModel.findById(id);
+```
+
+### 3. API Requests
+
+Frontend API requests should use short IDs for better readability:
+
+```javascript
+// Before
+const response = await fetch(`/api/bookings/123e4567-e89b-12d3-a456-426614174000`);
+
+// After
+const response = await fetch(`/api/bookings/123e4567`);
+```
+
+## Internal Operations and Join Queries
+
+For internal operations, especially those involving joins, prefer using full UUIDs:
+
+```javascript
+// Example join query
+const result = await pool.query(`
+  SELECT b.*, u.name as owner_name
+  FROM bookings b
+  JOIN users u ON b.owner_id = u.id
+  WHERE b.id = $1
+`, [booking.id]); // Use full UUID for joins
+```
+
+## ID Format Validation
+
+Use the utility functions to validate ID formats:
+
+```javascript
+const { isShortId, isUuid } = require('../utils/idUtils');
+
+function validateId(id) {
+  if (!id || (!isShortId(id) && !isUuid(id))) {
+    throw new Error('Invalid ID format');
+  }
+}
+```
+
+## Troubleshooting
+
+### Missing Short IDs
+
+If records are missing short IDs, run the generation script:
+
+```bash
+npm run generate-short-ids
+```
+
+### ID Resolution Issues
+
+If lookup by short ID is failing, check:
+1. That the `short_id` column exists and is indexed
+2. That the model's `findById` method correctly handles both formats
+3. That the short ID was generated correctly
+
+## Testing Short ID Support
+
+Include tests that verify both ID formats work:
+
+```javascript
+test('should find record by short ID', async () => {
+  const record = await YourModel.create({...});
+  const found = await YourModel.findById(record.short_id);
+  expect(found.id).toBe(record.id);
+});
+
+test('should find record by UUID', async () => {
+  const record = await YourModel.create({...});
+  const found = await YourModel.findById(record.id);
+  expect(found.id).toBe(record.id);
+});
+``` 

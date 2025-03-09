@@ -1,0 +1,183 @@
+---
+layout: home
+title: DockRent Documentation
+description: Complete documentation for the DockRent platform
+
+hero:
+  name: DockRent
+  text: Dock Rental Platform
+  tagline: The simplest way to manage and rent docks
+  image:
+    src: /images/hero.png
+    alt: DockRent Logo
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /getting-started
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/dokkerr/dokkerr
+
+features:
+  - icon: 🚤
+    title: Easy Dock Rental
+    details: Simple and intuitive interface for renting docks. Perfect for both dock owners and renters.
+    link: /features/dock-rental
+  - icon: 🔒
+    title: Secure Booking
+    details: Built-in security features including verified users, secure payments, and protected communications.
+    link: /security/overview
+  - icon: 📊
+    title: Smart Management
+    details: Comprehensive tools for dock management, scheduling, and resource allocation.
+    link: /features/management
+  - icon: 🔄
+    title: Real-time Updates
+    details: Get instant notifications about dock availability, bookings, and system status.
+    link: /features/notifications
+  - icon: 💻
+    title: User Friendly
+    details: Intuitive interface for both dock owners and renters, with comprehensive mobile support.
+    link: /user-guide
+  - icon: 🌐
+    title: Multi-location Support
+    details: Manage multiple dock locations with advanced scheduling and monitoring features.
+    link: /features/multi-location
+---
+
+# Implementation Status
+
+## Status Definitions
+
+- ✅ **Completed**: Feature is fully implemented and tested
+- 🚧 **In Progress**: Feature is currently being developed
+- 📅 **Planned**: Feature is documented and planned for development
+- ❌ **Not Started**: Feature is documented but development hasn't begun
+
+## Core Features Status
+
+### User Management
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| User Registration | ✅ | Basic registration implemented |
+| Email Verification | ✅ | Using SendGrid for emails |
+| Profile Management | 🚧 | Profile photo upload pending |
+| User Types | ✅ | Basic role system implemented |
+| Multi-factor Auth | ❌ | Planned for Phase 2 |
+
+### Dock Management
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Dock Listing | ✅ | Basic listing creation works |
+| Availability Calendar | 🚧 | Calendar integration in progress |
+| Pricing Management | 🚧 | Dynamic pricing implementation in progress |
+| Maintenance Tracking | ❌ | Design completed |
+| Location Management | ✅ | Basic location structure implemented |
+
+### Booking System
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Reservation System | ✅ | Basic booking implemented |
+| Payment Processing | ✅ | Basic payment flow works |
+| Cancellation Policy | 🚧 | Policy management in progress |
+| Booking Confirmation | ✅ | Email notifications working |
+| Refund System | ❌ | Not implemented yet |
+
+### Payment System
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Payment Processing | 🚧 | In development |
+| Invoice Generation | 🚧 | Basic flow implemented |
+| Refund Processing | ❌ | Not started |
+| Payment History | ❌ | Not started |
+| Transaction Logs | 🚧 | Basic logging implemented |
+
+### Communication
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| In-app Messaging | ❌ | Planned for Phase 2 |
+| Email Notifications | ✅ | Basic notifications working |
+| Push Notifications | ❌ | Not started |
+| Audit System | 🚧 | Basic implementation in progress |
+
+## Deployment Plan
+
+### Phase 1 (Current)
+**Status**: 🚧 In Progress
+- Core user management
+- Basic dock operations
+- Simple booking flow
+- Essential security features
+
+### Phase 2 (Next)
+**Status**: 📅 Planned
+- Complete payment system
+- Messaging system
+- Enhanced booking features
+- Mobile app beta
+
+### Phase 3 (Future)
+**Status**: 📅 Planned
+- Advanced booking features
+- Real-time notifications
+- Analytics dashboard
+- Enhanced mobile features
+
+## Recent Updates
+
+| Date | Feature | Status Change | Notes |
+|------|---------|---------------|-------|
+| 2024-03-07 | User Types | ✅ Completed | Basic role system implemented |
+| 2024-03-07 | Payment Processing | 🚧 In Progress | Started payment integration |
+| 2024-03-07 | Dock Listing | 🚧 In Progress | Enhanced listing features started |
+
+## Documentation Sections
+
+### For Users
+- [Getting Started](/getting-started) - Start here if you're new
+- [User Guide](/user-guide) - Complete guide for users
+- [Dock Owner Guide](/user-guide/dock-owners) - Guide for dock owners
+- [Renter Guide](/user-guide/renters) - Guide for renters
+
+### For Developers
+- [API Reference](/technical/api-reference) - Complete API documentation
+- [Development Guide](/development/getting-started) - Development setup
+- [Contributing](/development/contributing) - How to contribute
+- [Testing Guide](/development/testing) - Testing procedures
+
+### Technical Documentation
+- [Architecture](/architecture/overview) - System architecture
+- [Database Schema](/technical/database) - Data structure
+- [API Endpoints](/technical/api-reference) - API documentation
+- [WebSocket](/technical/websocket) - Real-time features
+
+### Operations
+- [Deployment](/operations/deployment) - Deployment procedures
+- [Monitoring](/operations/monitoring) - System monitoring
+- [Maintenance](/operations/maintenance) - System maintenance
+- [Scaling](/operations/scaling) - Scaling guidelines
+
+### Security
+- [Overview](/security/overview) - Security architecture
+- [Authentication](/security/authentication) - Auth system
+- [Data Protection](/security/data-protection) - Data security
+- [Compliance](/security/compliance) - Compliance requirements
+
+## Support Resources
+
+- [Troubleshooting](/technical/troubleshooting)
+- [FAQ](/technical/faq)
+- [System Status](https://status.dokkerr.com)
+- [Support Portal](https://support.dokkerr.com)
+
+## Contributing
+
+- [Contributing Guide](/development/contributing)
+- [Code Style Guide](/development/code-style)
+- [Git Workflow](/development/git-workflow)
+- [Release Process](/development/release-process) 

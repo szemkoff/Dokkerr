@@ -1,0 +1,412 @@
+
+# Security
+
+## Overview
+
+Dokkerr implements comprehensive security measures to protect user data, prevent unauthorized access, and ensure system integrity. This document outlines our security practices, policies, and implementation details.
+
+## Authentication
+
+### JWT Implementation
+
+```typescript
+import jwt from 'jsonwebtoken';
+import { createHash } from 'crypto';
+
+class AuthenticationService {
+  private static readonly JWT_SECRET = process.env.JWT_SECRET;
+  private static readonly JWT_EXPIRY = '24h';
+  
+  static async generateToken(user: User) {
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      sessionId: createHash('sha256').update(Date.now().toString()).digest('hex')
+    };
+    
+    return jwt.sign(payload, this.JWT_SECRET, {
+      expiresIn: this.JWT_EXPIRY
+    });
+  }
+  
+  static async verifyToken(token: string) {
+    try {
+      const decoded = jwt.verify(token, this.JWT_SECRET);
+      return decoded;
+    } catch (error) {
+      throw new AuthenticationError('Invalid or expired token');
+    }
+  }
+}
+```
+
+### Multi-Factor Authentication
+
+```typescript
+class MFAService {
+  static async enableMFA(userId: string) {
+    const secret = generateTOTPSecret();
+    const qrCode = await generateQRCode(secret);
+    
+    await db.users.update({
+      where: { id: userId },
+      data: {
+        mfaEnabled: true,
+        mfaSecret: encryptSecret(secret)
+      }
+    });
+    
+    return { secret, qrCode };
+  }
+  
+  static async verifyMFACode(userId: string, code: string) {
+    const user = await db.users.findUnique({
+      where: { id: userId },
+      select: { mfaSecret: true }
+    });
+    
+    return verifyTOTP(decryptSecret(user.mfaSecret), code);
+  }
+}
+```
+
+## Authorization
+
+### Role-Based Access Control
+
+```typescript
+enum UserRole {
+  ADMIN = 'admin',
+  DOCK_OWNER = 'dock_owner',
+  BOATER = 'boater',
+  GUEST = 'guest'
+}
+
+const permissions = {
+  [UserRole.ADMIN]: ['*'],
+  [UserRole.DOCK_OWNER]: [
+    'listings:create',
+    'listings:update',
+    'listings:delete',
+    'bookings:manage'
+  ],
+  [UserRole.BOATER]: [
+    'listings:view',
+    'bookings:create',
+    'bookings:cancel'
+  ],
+  [UserRole.GUEST]: [
+    'listings:view'
+  ]
+};
+```
+
+### Permission Middleware
+
+```typescript
+function requirePermission(permission: string) {
+  return async (req, res, next) => {
+    const userRole = req.user.role;
+    const userPermissions = permissions[userRole];
+    
+    if (userPermissions.includes('*') || 
+        userPermissions.includes(permission)) {
+      return next();
+    }
+    
+    throw new AuthorizationError('Insufficient permissions');
+  };
+}
+```
+
+## Data Protection
+
+### Encryption
+
+```typescript
+import { createCipheriv, createDecipheriv } from 'crypto';
+
+class Encryption {
+  private static readonly ALGORITHM = 'aes-256-gcm';
+  private static readonly KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
+  
+  static encrypt(data: string) {
+    const iv = crypto.randomBytes(12);
+    const cipher = createCipheriv(this.ALGORITHM, this.KEY, iv);
+    
+    const encrypted = Buffer.concat([
+      cipher.update(data, 'utf8'),
+      cipher.final()
+    ]);
+    
+    const tag = cipher.getAuthTag();
+    
+    return {
+      encrypted: encrypted.toString('hex'),
+      iv: iv.toString('hex'),
+      tag: tag.toString('hex')
+    };
+  }
+  
+  static decrypt(data: EncryptedData) {
+    const decipher = createDecipheriv(
+      this.ALGORITHM,
+      this.KEY,
+      Buffer.from(data.iv, 'hex')
+    );
+    
+    decipher.setAuthTag(Buffer.from(data.tag, 'hex'));
+    
+    return Buffer.concat([
+      decipher.update(Buffer.from(data.encrypted, 'hex')),
+      decipher.final()
+    ]).toString('utf8');
+  }
+}
+```
+
+### Data Masking
+
+```typescript
+class DataMasking {
+  static maskCreditCard(number: string) {
+    return `****-****-****-${number.slice(-4)}`;
+  }
+  
+  static maskEmail(email: string) {
+    const [local, domain] = email.split('@');
+    return `${local[0]}***@${domain}`;
+  }
+  
+  static maskPhoneNumber(phone: string) {
+    return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+  }
+}
+```
+
+## Network Security
+
+### API Rate Limiting
+
+```typescript
+import rateLimit from 'express-rate-limit';
+
+const rateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests, please try again later',
+  headers: true,
+  handler: (req, res) => {
+    logRateLimitViolation(req);
+    res.status(429).json({
+      status: 'error',
+      message: 'Rate limit exceeded'
+    });
+  }
+});
+```
+
+### CORS Configuration
+
+```typescript
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS.split(','),
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['X-Total-Count'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+};
+```
+
+## Audit Logging
+
+### Security Events
+
+```typescript
+class SecurityAudit {
+  static async logSecurityEvent(event: SecurityEvent) {
+    await db.securityLogs.create({
+      data: {
+        type: event.type,
+        userId: event.userId,
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
+        details: event.details,
+        timestamp: new Date()
+      }
+    });
+  }
+  
+  static async getSecurityEvents(filters: SecurityEventFilters) {
+    return await db.securityLogs.findMany({
+      where: filters,
+      orderBy: { timestamp: 'desc' }
+    });
+  }
+}
+```
+
+### Access Logs
+
+```typescript
+const accessLogMiddleware = (req, res, next) => {
+  const startTime = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    
+    db.accessLogs.create({
+      data: {
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode,
+        duration,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        userId: req.user?.id
+      }
+    });
+  });
+  
+  next();
+};
+```
+
+## Vulnerability Management
+
+### Security Scanning
+
+```typescript
+class SecurityScanner {
+  static async runSecurityScan() {
+    return {
+      dependencies: await this.scanDependencies(),
+      codeAnalysis: await this.runStaticAnalysis(),
+      networkScan: await this.scanNetwork(),
+      configAudit: await this.auditConfigurations()
+    };
+  }
+  
+  static async scanDependencies() {
+    // Run npm audit
+    const { stdout } = await exec('npm audit --json');
+    return JSON.parse(stdout);
+  }
+}
+```
+
+### Automated Updates
+
+```typescript
+class DependencyUpdater {
+  static async updateDependencies() {
+    // Check for updates
+    const updates = await this.checkForUpdates();
+    
+    // Run tests
+    await this.runSecurityTests();
+    
+    // Apply updates
+    await this.applyUpdates(updates);
+    
+    return updates;
+  }
+}
+```
+
+## Incident Response
+
+### Response Procedures
+
+```typescript
+class IncidentResponse {
+  static async handleSecurityIncident(incident: SecurityIncident) {
+    // 1. Contain the incident
+    await this.containIncident(incident);
+    
+    // 2. Investigate
+    const investigation = await this.investigateIncident(incident);
+    
+    // 3. Remediate
+    await this.remediateIncident(investigation);
+    
+    // 4. Report
+    await this.reportIncident(incident, investigation);
+  }
+}
+```
+
+### Alert System
+
+```typescript
+const securityAlerts = {
+  unauthorizedAccess: {
+    severity: 'critical',
+    notification: ['email', 'sms', 'slack'],
+    escalation: true
+  },
+  suspiciousActivity: {
+    severity: 'warning',
+    notification: ['email', 'slack'],
+    escalation: false
+  }
+};
+```
+
+## Compliance
+
+### GDPR Compliance
+
+```typescript
+class GDPRCompliance {
+  static async handleDataRequest(userId: string, requestType: 'export' | 'delete') {
+    if (requestType === 'export') {
+      return await this.exportUserData(userId);
+    } else {
+      return await this.deleteUserData(userId);
+    }
+  }
+  
+  static async exportUserData(userId: string) {
+    const userData = await this.collectUserData(userId);
+    return this.formatDataExport(userData);
+  }
+}
+```
+
+### PCI Compliance
+
+```typescript
+class PCICompliance {
+  static validateCardData(card: PaymentCard) {
+    // Never store full card numbers
+    if (card.number.length > 4) {
+      throw new Error('Cannot store full card numbers');
+    }
+    
+    // Validate security standards
+    return this.validatePCIRequirements(card);
+  }
+}
+```
+
+## Troubleshooting
+
+Common security issues and solutions:
+
+1. **Authentication Issues**
+   - Check token expiration
+   - Verify MFA setup
+   - Monitor failed attempts
+
+2. **Authorization Problems**
+   - Review role assignments
+   - Check permission mappings
+   - Audit access logs
+
+3. **Security Alerts**
+   - Investigate root cause
+   - Apply security patches
+   - Update security rules 
